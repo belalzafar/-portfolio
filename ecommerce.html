@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI E-Commerce — Belal Zafar</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══ THEME: Warm Luxury Minimal — Cream & Terracotta ═══ */
+:root{
+  --bg:#0E0A07;--panel:#140E09;--card:#1C1410;--border:rgba(255,160,80,.1);
+  --a:#FF8C42;--a2:#FFB86C;--a3:#E05C1A;--green:#2ECC71;
+  --text:#F0E6D8;--dim:#7A6050;--cream:#E8D5BC;
+  --glow:0 0 24px rgba(255,140,66,.15);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;cursor:none}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse at 80% 0%,rgba(255,140,66,.06) 0%,transparent 50%),
+             radial-gradient(ellipse at 10% 100%,rgba(255,100,50,.04) 0%,transparent 45%);
+}
+
+/* cursor: elegant oval */
+.cur{position:fixed;pointer-events:none;z-index:9999}
+.cur-o{
+  width:40px;height:40px;border:1px solid rgba(255,140,66,.5);border-radius:50%;
+  position:absolute;transform:translate(-50%,-50%);transition:all .15s ease;
+}
+.cur-d{
+  width:5px;height:5px;background:var(--a);border-radius:50%;
+  position:absolute;transform:translate(-50%,-50%);transition:transform .1s;
+}
+.cur-o.big{width:60px;height:60px;border-color:var(--a);background:rgba(255,140,66,.04)}
+
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:500;
+  padding:20px 60px;display:flex;justify-content:space-between;align-items:center;
+  background:rgba(14,10,7,.85);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+}
+.n-logo{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:600;color:var(--a);letter-spacing:.08em;font-style:italic}
+.n-back{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--dim);text-decoration:none;letter-spacing:.08em;transition:color .2s;padding:7px 14px;border:1px solid var(--border);border-radius:2px}
+.n-back:hover{color:var(--a);border-color:var(--a)}
+
+/* HERO */
+.hero{
+  min-height:100vh;display:grid;grid-template-columns:1fr 1fr;
+  align-items:center;padding:100px 60px 60px;gap:80px;
+}
+.h-tag{
+  font-family:'DM Mono',monospace;font-size:.7rem;color:var(--dim);
+  letter-spacing:.15em;text-transform:uppercase;margin-bottom:28px;
+  display:flex;align-items:center;gap:10px;
+}
+.h-tag::before{content:'';width:28px;height:1px;background:var(--a)}
+h1{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(3.5rem,6vw,6rem);font-weight:600;line-height:.9;
+  letter-spacing:-.02em;margin-bottom:28px;font-style:italic;
+}
+h1 em{color:var(--a);font-style:italic}
+.h-desc{font-size:.97rem;color:var(--dim);line-height:1.85;max-width:420px;margin-bottom:44px;font-weight:300}
+.h-desc b{color:var(--text);font-weight:500}
+.h-btns{display:flex;gap:14px;flex-wrap:wrap}
+.hb1{
+  padding:13px 30px;background:var(--a);color:var(--bg);border:none;border-radius:2px;
+  font-family:'DM Mono',monospace;font-size:.76rem;font-weight:500;letter-spacing:.08em;
+  text-transform:uppercase;text-decoration:none;cursor:pointer;transition:all .25s;
+  display:inline-flex;align-items:center;gap:8px;
+}
+.hb1:hover{background:var(--a2);transform:translateY(-2px);box-shadow:var(--glow)}
+.hb2{
+  padding:13px 30px;background:transparent;color:var(--text);border:1px solid var(--border);
+  font-family:'DM Mono',monospace;font-size:.76rem;letter-spacing:.08em;text-transform:uppercase;
+  text-decoration:none;transition:all .25s;border-radius:2px;
+}
+.hb2:hover{border-color:var(--a);color:var(--a)}
+
+/* hero right — product showcase */
+.showcase{position:relative}
+.show-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.show-card{
+  background:var(--card);border:1px solid var(--border);border-radius:6px;
+  overflow:hidden;transition:all .3s;position:relative;
+}
+.show-card:hover{border-color:rgba(255,140,66,.3);transform:translateY(-4px);box-shadow:var(--glow)}
+.show-img{aspect-ratio:1;background:rgba(255,255,255,.02);display:flex;align-items:center;justify-content:center;font-size:2.8rem}
+.show-info{padding:12px}
+.show-name{font-size:.85rem;font-weight:500;margin-bottom:3px}
+.show-price{font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--a2);font-weight:600}
+.ai-pick{
+  position:absolute;top:8px;right:8px;padding:3px 8px;
+  background:rgba(255,140,66,.12);border:1px solid rgba(255,140,66,.25);
+  border-radius:100px;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--a);letter-spacing:.05em;
+}
+/* feat badge */
+.show-card.big{grid-column:span 2}
+.show-card.big .show-img{aspect-ratio:2/1;font-size:4rem}
+
+/* DEMO SECTION */
+#demo{padding:90px 60px;background:var(--panel);border-top:1px solid var(--border)}
+.sec-tag{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--a);letter-spacing:.15em;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.sec-tag::before{content:'';width:24px;height:1px;background:var(--a)}
+.sec-t{font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,4vw,3rem);font-weight:600;letter-spacing:-.02em;margin-bottom:40px;font-style:italic}
+/* shop UI */
+.shop-ui{
+  background:var(--card);border:1px solid var(--border);border-radius:8px;
+  overflow:hidden;box-shadow:0 40px 80px rgba(0,0,0,.5);
+}
+.shop-top{
+  padding:16px 24px;background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.shop-brand{font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:600;color:var(--a);font-style:italic}
+.shop-nav{display:flex;align-items:center;gap:20px}
+.shop-nav-link{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--dim);text-decoration:none;transition:color .2s}
+.shop-nav-link:hover{color:var(--a)}
+.cart-pill{
+  display:flex;align-items:center;gap:8px;padding:7px 16px;
+  background:rgba(255,140,66,.08);border:1px solid rgba(255,140,66,.2);border-radius:100px;
+  font-family:'DM Mono',monospace;font-size:.7rem;color:var(--a);cursor:pointer;
+}
+.cart-n{background:var(--a);color:var(--bg);border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700}
+
+/* search */
+.search-area{padding:18px 24px;border-bottom:1px solid var(--border)}
+.search-wrap{position:relative;max-width:550px}
+.s-badge{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-family:'DM Mono',monospace;font-size:.58rem;color:var(--a);background:rgba(255,140,66,.08);border:1px solid rgba(255,140,66,.2);border-radius:2px;padding:2px 6px;pointer-events:none}
+.s-input{
+  width:100%;padding:12px 50px 12px 78px;background:rgba(255,255,255,.03);
+  border:1px solid var(--border);border-radius:4px;font-family:'DM Sans',sans-serif;
+  font-size:.9rem;color:var(--text);outline:none;transition:all .25s;
+}
+.s-input:focus{border-color:var(--a);background:rgba(255,140,66,.03)}
+.s-input::placeholder{color:var(--dim)}
+.s-btn{
+  position:absolute;right:8px;top:50%;transform:translateY(-50%);
+  padding:7px 14px;background:var(--a);color:var(--bg);border:none;
+  font-family:'DM Mono',monospace;font-size:.68rem;border-radius:3px;cursor:pointer;transition:all .2s;
+}
+.s-btn:hover{background:var(--a2)}
+.s-suggs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.s-sug{
+  padding:5px 12px;background:rgba(255,140,66,.05);border:1px solid var(--border);
+  border-radius:100px;font-family:'DM Mono',monospace;font-size:.65rem;color:var(--dim);
+  cursor:pointer;transition:all .2s;
+}
+.s-sug:hover{border-color:var(--a);color:var(--a)}
+
+/* products */
+.prod-area{padding:20px 24px;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
+.pc{
+  background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:6px;
+  overflow:hidden;transition:all .3s;cursor:pointer;
+}
+.pc:hover{border-color:rgba(255,140,66,.3);transform:translateY(-4px);box-shadow:var(--glow)}
+.pc-img{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:2.5rem;background:rgba(255,255,255,.01);position:relative}
+.pc-ai{position:absolute;top:6px;right:6px;padding:2px 7px;background:rgba(255,140,66,.1);border:1px solid rgba(255,140,66,.25);border-radius:100px;font-family:'DM Mono',monospace;font-size:.55rem;color:var(--a)}
+.pc-info{padding:12px}
+.pc-name{font-size:.86rem;font-weight:500;margin-bottom:3px;line-height:1.3}
+.pc-cat{font-family:'DM Mono',monospace;font-size:.58rem;color:var(--dim);margin-bottom:8px;letter-spacing:.04em}
+.pc-bot{display:flex;justify-content:space-between;align-items:center}
+.pc-price{font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--a2);font-weight:600}
+.pc-add{padding:5px 10px;background:var(--a);color:var(--bg);border:none;border-radius:2px;font-family:'DM Mono',monospace;font-size:.6rem;cursor:pointer;transition:all .2s}
+.pc-add:hover{background:var(--a2)}
+.pc-stars{font-size:.65rem;margin-bottom:6px}
+
+/* TECH */
+#tech{padding:90px 60px;background:var(--bg);border-top:1px solid var(--border)}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:36px}
+.fc-card{padding:26px;border:1px solid var(--border);border-radius:6px;background:var(--card);transition:all .25s}
+.fc-card:hover{border-color:rgba(255,140,66,.3);transform:translateY(-4px)}
+.fc-icon{font-size:1.6rem;margin-bottom:14px;display:block}
+.fc-t{font-weight:600;font-size:1rem;margin-bottom:8px}
+.fc-d{font-size:.85rem;color:var(--dim);line-height:1.7;font-weight:300}
+.tech-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:40px}
+.tp{padding:9px 18px;background:var(--card);border:1px solid var(--border);border-radius:100px;font-family:'DM Mono',monospace;font-size:.75rem;color:var(--dim);transition:all .2s}
+.tp:hover{border-color:var(--a);color:var(--a)}
+
+footer{padding:30px 60px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.foot-copy{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--dim)}
+.foot-back a{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--dim);text-decoration:none;transition:color .2s}
+.foot-back a:hover{color:var(--a)}
+
+@media(max-width:900px){
+  nav{padding:14px 20px}.hero{padding:90px 20px 50px;grid-template-columns:1fr;gap:40px}
+  .show-grid{grid-template-columns:1fr 1fr}.show-card.big{grid-column:span 2}
+  #demo{padding:60px 20px}#tech{padding:60px 20px}
+  .feat-grid{grid-template-columns:1fr}footer{padding:24px 20px;flex-direction:column;gap:12px}
+}
+</style>
+</head>
+<body>
+<div class="cur" id="curEl">
+  <div class="cur-o" id="curO"></div>
+  <div class="cur-d" id="curD"></div>
+</div>
+
+<nav>
+  <div class="n-logo">ShopAI</div>
+  <a href="index.html" class="n-back">← Portfolio</a>
+</nav>
+
+<section class="hero">
+  <div>
+    <div class="h-tag">Full Stack · React · AI Recommendation Engine</div>
+    <h1>E-Commerce<br>with <em>AI</em><br>Search</h1>
+    <p class="h-desc">A full-stack e-commerce platform with <b>AI-powered semantic search</b> and personalized recommendations using collaborative filtering. Built with React, Node.js, and a custom ML engine.</p>
+    <div class="h-btns">
+      <a href="#demo" class="hb1">→ Open Store</a>
+      <a href="https://github.com/belal-zafar/ai-ecommerce" target="_blank" class="hb2">⌥ GitHub</a>
+    </div>
+  </div>
+  <div class="showcase">
+    <div class="show-grid">
+      <div class="show-card big">
+        <div class="ai-pick">🤖 AI Pick</div>
+        <div class="show-img">🎧</div>
+        <div class="show-info">
+          <div class="show-name">Sony WH-1000XM5</div>
+          <div class="show-price">₹24,990</div>
+        </div>
+      </div>
+      <div class="show-card">
+        <div class="show-img">📱</div>
+        <div class="show-info"><div class="show-name">Redmi Note 13 Pro</div><div class="show-price">₹17,499</div></div>
+      </div>
+      <div class="show-card">
+        <div class="ai-pick">🤖 AI Pick</div>
+        <div class="show-img">💻</div>
+        <div class="show-info"><div class="show-name">HP Pavilion 15</div><div class="show-price">₹52,990</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="demo">
+  <div class="sec-tag">Live Demo</div>
+  <div class="sec-t">Interactive Store</div>
+  <div class="shop-ui">
+    <div class="shop-top">
+      <div class="shop-brand">ShopAI ✦</div>
+      <div class="shop-nav">
+        <a href="#" class="shop-nav-link">Home</a>
+        <a href="#" class="shop-nav-link">Electronics</a>
+        <a href="#" class="shop-nav-link">Fashion</a>
+        <div class="cart-pill" onclick="cartAlert()">🛒 Cart <div class="cart-n" id="cn">0</div></div>
+      </div>
+    </div>
+    <div class="search-area">
+      <div class="search-wrap">
+        <span class="s-badge">AI</span>
+        <input class="s-input" id="si" placeholder="Try: 'wireless earbuds under ₹2000'..." onkeydown="if(event.key==='Enter')doSearch()">
+        <button class="s-btn" onclick="doSearch()">Search</button>
+      </div>
+      <div class="s-suggs">
+        <span class="s-sug" onclick="qs(this)">🎧 wireless earbuds</span>
+        <span class="s-sug" onclick="qs(this)">📱 budget smartphones</span>
+        <span class="s-sug" onclick="qs(this)">💻 student laptops</span>
+        <span class="s-sug" onclick="qs(this)">⌚ smartwatches</span>
+        <span class="s-sug" onclick="qs(this)">🖱️ gaming accessories</span>
+      </div>
+    </div>
+    <div class="prod-area" id="pa"></div>
+  </div>
+</section>
+
+<section id="tech">
+  <div class="sec-tag">Features & Stack</div>
+  <div class="sec-t" style="font-family:'Cormorant Garamond',serif;font-style:italic">Built With Care</div>
+  <div class="feat-grid">
+    <div class="fc-card"><span class="fc-icon">🔍</span><div class="fc-t">Semantic AI Search</div><div class="fc-d">Sentence Transformers encode queries and products into dense vectors. Cosine similarity retrieval finds relevant products even with imprecise queries.</div></div>
+    <div class="fc-card"><span class="fc-icon">🤝</span><div class="fc-t">Collaborative Filtering</div><div class="fc-d">Matrix factorization based recommendation. "Users who bought X also liked Y" — personalized to each user's browsing and purchase history.</div></div>
+    <div class="fc-card"><span class="fc-icon">⚡</span><div class="fc-t">React + Node.js</div><div class="fc-d">Fast React frontend with optimistic UI updates. Node.js REST API backend. MongoDB for product catalog and user sessions. JWT auth.</div></div>
+  </div>
+  <div class="tech-row">
+    <div class="tp">⚛️ React.js</div><div class="tp">🟢 Node.js</div>
+    <div class="tp">🐍 Python ML</div><div class="tp">🔍 Sentence Transformers</div>
+    <div class="tp">🤝 Collab. Filtering</div><div class="tp">🗄️ MongoDB</div>
+    <div class="tp">🌐 REST API</div><div class="tp">🐙 GitHub</div>
+  </div>
+</section>
+
+<footer>
+  <div class="foot-copy">AI E-Commerce · Belal Zafar · 2023</div>
+  <div class="foot-back"><a href="index.html">← Back to Portfolio</a></div>
+</footer>
+
+<script>
+  // cursor
+  const curEl=document.getElementById('curEl'),curO=document.getElementById('curO');
+  let mx=0,my=0,rx=0,ry=0;
+  document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;document.getElementById('curD').style.left=mx+'px';document.getElementById('curD').style.top=my+'px';curEl.style.left='0';curEl.style.top='0'});
+  (function anim(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;curO.style.left=rx+'px';curO.style.top=ry+'px';requestAnimationFrame(anim)})();
+  document.querySelectorAll('a,button,.pc,.s-sug,.show-card,.fc-card').forEach(el=>{el.addEventListener('mouseenter',()=>curO.classList.add('big'));el.addEventListener('mouseleave',()=>curO.classList.remove('big'))});
+
+  const prods=[
+    {id:1,n:'Sony WH-1000XM5',cat:'Wireless Headphones',price:'₹24,990',e:'🎧',r:'⭐⭐⭐⭐⭐',t:['wireless','headphones','audio','sony'],ai:true},
+    {id:2,n:'Redmi Note 13 Pro',cat:'Smartphone',price:'₹17,499',e:'📱',r:'⭐⭐⭐⭐',t:['phone','budget','smartphone','redmi'],ai:false},
+    {id:3,n:'HP Pavilion 15',cat:'Student Laptop',price:'₹52,990',e:'💻',r:'⭐⭐⭐⭐',t:['laptop','student','hp'],ai:true},
+    {id:4,n:'Apple Watch SE',cat:'Smartwatch',price:'₹29,900',e:'⌚',r:'⭐⭐⭐⭐⭐',t:['smartwatch','apple','wearable'],ai:false},
+    {id:5,n:'boAt Airdopes 141',cat:'Wireless Earbuds',price:'₹1,299',e:'🎵',r:'⭐⭐⭐⭐',t:['earbuds','wireless','boat','budget'],ai:true},
+    {id:6,n:'Samsung Galaxy S24',cat:'Flagship Phone',price:'₹74,999',e:'📱',r:'⭐⭐⭐⭐⭐',t:['phone','samsung','flagship'],ai:false},
+    {id:7,n:'Lenovo IdeaPad Slim',cat:'Budget Laptop',price:'₹39,990',e:'💻',r:'⭐⭐⭐⭐',t:['laptop','budget','lenovo','student'],ai:true},
+    {id:8,n:'Noise ColorFit Ultra',cat:'Fitness Watch',price:'₹2,999',e:'⌚',r:'⭐⭐⭐⭐',t:['smartwatch','fitness','budget'],ai:false},
+    {id:9,n:'Logitech G502 X',cat:'Gaming Mouse',price:'₹5,499',e:'🖱️',r:'⭐⭐⭐⭐⭐',t:['gaming','mouse','accessories'],ai:true},
+  ];
+  let cart=0;
+
+  function render(list){
+    document.getElementById('pa').innerHTML=list.map(p=>`
+      <div class="pc" onclick="addCart(${p.id})">
+        <div class="pc-img">${p.e}${p.ai?'<div class="pc-ai">🤖 AI</div>':''}</div>
+        <div class="pc-info">
+          <div class="pc-stars">${p.r}</div>
+          <div class="pc-name">${p.n}</div>
+          <div class="pc-cat">${p.cat}</div>
+          <div class="pc-bot"><div class="pc-price">${p.price}</div><button class="pc-add">+ Add</button></div>
+        </div>
+      </div>`).join('');
+  }
+  function doSearch(){
+    const q=document.getElementById('si').value.toLowerCase().trim();
+    if(!q){render(prods);return;}
+    const f=prods.filter(p=>p.n.toLowerCase().includes(q)||p.cat.toLowerCase().includes(q)||p.t.some(t=>q.includes(t)||t.includes(q.split(' ')[0])));
+    render(f.length?f:prods.slice(0,5));
+  }
+  function qs(el){document.getElementById('si').value=el.textContent.trim().replace(/^[^\w]*/,'');doSearch();}
+  function addCart(id){
+    cart++;document.getElementById('cn').textContent=cart;
+    document.getElementById('cn').style.transform='scale(1.4)';
+    setTimeout(()=>document.getElementById('cn').style.transform='scale(1)',200);
+  }
+  function cartAlert(){alert(`🛒 ${cart} item${cart!==1?'s':''} in cart!\n\n(Full checkout with Razorpay integration in production build)`)}
+  render(prods);
+
+  const obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.style.opacity='1';e.target.style.transform='translateY(0)'}}),{threshold:.1});
+  document.querySelectorAll('.fc-card,.tp').forEach((el,i)=>{el.style.opacity='0';el.style.transform='translateY(20px)';el.style.transition=`all .5s ease ${i*.07}s`;obs.observe(el)});
+</script>
+</body>
+</html>

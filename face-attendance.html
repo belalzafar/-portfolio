@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Face Attendance System — Belal Zafar</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+/* ═══ THEME: Cyberpunk HUD — Cyan on Deep Navy ═══ */
+:root{
+  --bg:#020810;--panel:#040D1C;--card:#060F24;--border:rgba(0,229,255,.12);
+  --c:#00E5FF;--c2:#00B8CC;--c3:#80F4FF;--ok:#39FF14;--err:#FF003C;
+  --text:#C0E8F0;--dim:#2A5566;--glow:0 0 20px rgba(0,229,255,.25);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Rajdhani',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;cursor:none}
+
+/* HUD scanline */
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,229,255,.006) 3px,rgba(0,229,255,.006) 4px);
+}
+/* corner HUD marks */
+body::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(0,229,255,.07) 0%,transparent 55%);
+}
+
+/* cursor: dot with ring */
+.c-outer{position:fixed;pointer-events:none;z-index:9999;top:0;left:0}
+.c-ring{
+  width:30px;height:30px;border:1px solid var(--c);border-radius:50%;
+  position:absolute;transform:translate(-50%,-50%);
+  transition:width .15s,height .15s;box-shadow:var(--glow);
+}
+.c-dot{
+  width:4px;height:4px;background:var(--c);border-radius:50%;
+  position:absolute;transform:translate(-50%,-50%);
+  box-shadow:0 0 8px var(--c);
+}
+.c-ring.big{width:44px;height:44px;border-color:var(--c3)}
+
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:500;
+  padding:14px 60px;display:flex;justify-content:space-between;align-items:center;
+  background:rgba(2,8,16,.9);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+}
+.n-logo{font-family:'Share Tech Mono',monospace;font-size:.85rem;color:var(--c);letter-spacing:.12em;display:flex;align-items:center;gap:12px}
+.n-hud{padding:3px 8px;border:1px solid rgba(0,229,255,.3);font-size:.62rem;color:var(--dim)}
+.n-back{font-family:'Share Tech Mono',monospace;font-size:.72rem;color:var(--dim);text-decoration:none;letter-spacing:.1em;padding:6px 14px;border:1px solid var(--border);transition:all .2s}
+.n-back:hover{color:var(--c);border-color:var(--c);box-shadow:var(--glow)}
+
+/* HERO */
+.hero{
+  min-height:100vh;display:flex;align-items:center;
+  padding:100px 60px 60px;gap:60px;position:relative;overflow:hidden;
+}
+.hero-bg{
+  position:absolute;inset:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(0,229,255,.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,229,255,.04) 1px,transparent 1px);
+  background-size:40px 40px;
+  mask-image:radial-gradient(ellipse at 60% 50%,black 30%,transparent 70%);
+}
+.hero-left{flex:1;position:relative;z-index:1}
+.h-sys{font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--dim);letter-spacing:.15em;margin-bottom:28px}
+.h-sys span{color:var(--c)}
+h1{
+  font-size:clamp(3rem,6vw,5.5rem);font-weight:700;line-height:.9;
+  letter-spacing:-.01em;margin-bottom:24px;text-transform:uppercase;
+}
+h1 .g{color:var(--c);text-shadow:0 0 30px rgba(0,229,255,.4)}
+.h-desc{font-size:1.05rem;color:var(--dim);line-height:1.8;max-width:440px;margin-bottom:44px;font-weight:500}
+.h-desc b{color:var(--text)}
+.h-btns{display:flex;gap:14px;flex-wrap:wrap}
+.hb1{
+  padding:12px 28px;background:transparent;color:var(--c);
+  border:1px solid var(--c);font-family:'Share Tech Mono',monospace;font-size:.8rem;
+  letter-spacing:.1em;text-decoration:none;cursor:pointer;transition:all .2s;
+  display:inline-flex;align-items:center;gap:8px;position:relative;overflow:hidden;
+}
+.hb1::before{content:'';position:absolute;inset:0;background:var(--c);transform:translateX(-100%);transition:transform .25s ease;z-index:-1}
+.hb1:hover{color:var(--bg);box-shadow:var(--glow)}.hb1:hover::before{transform:translateX(0)}
+.hb2{
+  padding:12px 28px;background:transparent;color:var(--dim);
+  border:1px solid var(--border);font-family:'Share Tech Mono',monospace;
+  font-size:.8rem;letter-spacing:.1em;text-decoration:none;transition:all .2s;
+}
+.hb2:hover{border-color:var(--c);color:var(--c)}
+
+/* hero right — HUD camera frame */
+.hud-frame{
+  width:420px;flex-shrink:0;position:relative;z-index:1;
+  aspect-ratio:1;
+}
+.hud-outer{
+  border:1px solid rgba(0,229,255,.2);border-radius:4px;
+  padding:3px;position:relative;
+}
+.hud-inner{
+  border:1px solid rgba(0,229,255,.1);border-radius:2px;
+  background:var(--panel);position:relative;overflow:hidden;
+  aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+}
+/* corner brackets */
+.corner{position:absolute;width:20px;height:20px;border-color:var(--c);border-style:solid;border-width:0}
+.c-tl{top:8px;left:8px;border-top-width:2px;border-left-width:2px}
+.c-tr{top:8px;right:8px;border-top-width:2px;border-right-width:2px}
+.c-bl{bottom:8px;left:8px;border-bottom-width:2px;border-left-width:2px}
+.c-br{bottom:8px;right:8px;border-bottom-width:2px;border-right-width:2px}
+.scan-beam{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--c),transparent);animation:beam 2.5s linear infinite;top:0}
+@keyframes beam{0%{top:0;opacity:1}95%{opacity:1}100%{top:100%;opacity:0}}
+.face-tgt{
+  width:120px;height:140px;position:relative;
+  border:1px solid rgba(0,229,255,.3);border-radius:2px;
+  display:flex;align-items:center;justify-content:center;
+  animation:fPulse 3s ease-in-out infinite;
+}
+@keyframes fPulse{0%,100%{box-shadow:0 0 0 0 rgba(0,229,255,.2)}50%{box-shadow:0 0 0 20px rgba(0,229,255,0)}}
+.face-emoji{font-size:5rem;opacity:.2}
+.face-dots .fd{position:absolute;width:5px;height:5px;border-radius:50%;background:var(--c);opacity:.6}
+.fd.fd1{top:25%;left:30%}.fd.fd2{top:25%;right:30%}.fd.fd3{top:45%;left:50%;transform:translateX(-50%)}
+.fd.fd4{bottom:30%;left:35%}.fd.fd5{bottom:30%;right:35%}
+.hud-data{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-family:'Share Tech Mono',monospace;font-size:.58rem;color:rgba(0,229,255,.5);line-height:2;text-align:right}
+.hud-status{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);font-family:'Share Tech Mono',monospace;font-size:.65rem;color:var(--c);letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}
+
+/* METRICS ROW */
+.mrow{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  background:var(--panel);border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+}
+.mitem{padding:28px;text-align:center;border-right:1px solid var(--border)}
+.mitem:last-child{border-right:none}
+.mi-n{font-family:'Share Tech Mono',monospace;font-size:2.2rem;color:var(--c);line-height:1;margin-bottom:4px;text-shadow:0 0 20px rgba(0,229,255,.3)}
+.mi-l{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--dim);letter-spacing:.15em;text-transform:uppercase}
+
+/* DEMO */
+#demo{padding:80px 60px;background:var(--panel)}
+.sec-tag{font-family:'Share Tech Mono',monospace;font-size:.68rem;color:var(--c);letter-spacing:.2em;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.sec-tag::before{content:'//';color:var(--dim);margin-right:2px}
+.sec-t{font-size:clamp(1.8rem,3vw,2.6rem);font-weight:700;letter-spacing:-.02em;text-transform:uppercase;margin-bottom:40px}
+.demo-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+/* camera panel */
+.cam-panel{background:var(--card);border:1px solid var(--border);border-radius:4px;overflow:hidden}
+.cp-bar{padding:12px 16px;background:rgba(0,229,255,.04);border-bottom:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:.68rem;color:var(--dim);display:flex;justify-content:space-between;align-items:center}
+.cp-live{display:flex;align-items:center;gap:6px;color:var(--ok)}
+.cp-live-dot{width:6px;height:6px;border-radius:50%;background:var(--ok);animation:bk 1.5s step-end infinite}
+@keyframes bk{0%,100%{opacity:1}50%{opacity:0}}
+.cam-feed{height:300px;background:#000;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.cam-grid-lines{position:absolute;inset:0;background-image:linear-gradient(rgba(0,229,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.04) 1px,transparent 1px);background-size:30px 30px}
+.scan-ring{width:150px;height:170px;border:2px solid var(--c);position:absolute;top:50%;left:50%;transform:translate(-50%,-55%);border-radius:2px;animation:srp 2s ease-in-out infinite;box-shadow:var(--glow)}
+@keyframes srp{0%,100%{opacity:.5;border-color:var(--c)}50%{opacity:1;border-color:var(--c3);box-shadow:0 0 40px rgba(0,229,255,.4)}}
+.scan-h{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--c),transparent);animation:sh 2s ease-in-out infinite;top:0}
+@keyframes sh{0%{top:0}100%{top:300px}}
+.cam-face{font-size:5rem;opacity:.1;position:absolute}
+.scan-corners .sc{position:absolute;width:16px;height:16px;border-color:var(--c3);border-style:solid;border-width:0;opacity:.8}
+.sc.tl{top:-1px;left:-1px;border-top-width:3px;border-left-width:3px}
+.sc.tr{top:-1px;right:-1px;border-top-width:3px;border-right-width:3px}
+.sc.bl{bottom:-1px;left:-1px;border-bottom-width:3px;border-left-width:3px}
+.sc.br{bottom:-1px;right:-1px;border-bottom-width:3px;border-right-width:3px}
+.cam-label{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--c);letter-spacing:.12em;white-space:nowrap}
+.scan-btn{width:100%;padding:13px;background:transparent;color:var(--c);border:none;border-top:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:.8rem;letter-spacing:.12em;cursor:pointer;transition:all .2s;text-transform:uppercase}
+.scan-btn:hover{background:rgba(0,229,255,.06);box-shadow:inset var(--glow)}
+
+/* log panel */
+.log-panel{background:var(--card);border:1px solid var(--border);border-radius:4px;overflow:hidden;display:flex;flex-direction:column}
+.lp-bar{padding:12px 16px;background:rgba(0,229,255,.04);border-bottom:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:.68rem;color:var(--dim)}
+.log-body{flex:1;overflow-y:auto;padding:14px;min-height:260px}
+.log-body::-webkit-scrollbar{width:3px}
+.log-body::-webkit-scrollbar-thumb{background:var(--border)}
+.log-entry{
+  padding:10px 12px;margin-bottom:8px;border:1px solid transparent;
+  border-radius:2px;display:flex;align-items:center;gap:12px;
+  animation:le .3s ease;
+}
+@keyframes le{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+.le-ok{background:rgba(57,255,20,.05);border-color:rgba(57,255,20,.15)}
+.le-err{background:rgba(255,0,60,.05);border-color:rgba(255,0,60,.15)}
+.le-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;font-family:'Share Tech Mono',monospace;font-size:.8rem;font-weight:600}
+.le-ok .le-av{background:rgba(57,255,20,.1);color:var(--ok)}
+.le-err .le-av{background:rgba(255,0,60,.1);color:var(--err)}
+.le-info{flex:1}
+.le-name{font-weight:600;font-size:.92rem;margin-bottom:2px}
+.le-meta{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--dim)}
+.le-tag{padding:2px 8px;font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:.08em}
+.le-ok .le-tag{background:rgba(57,255,20,.1);color:var(--ok)}.le-err .le-tag{background:rgba(255,0,60,.1);color:var(--err)}
+.stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;border-top:1px solid var(--border)}
+.sr{padding:14px;text-align:center;border-right:1px solid var(--border)}
+.sr:last-child{border-right:none}
+.sr-n{font-family:'Share Tech Mono',monospace;font-size:1.5rem;line-height:1}
+.sr-l{font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-top:3px}
+
+/* ARCH */
+#arch{padding:80px 60px;background:var(--bg)}
+.arch-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:36px}
+.arch-card{padding:24px;border:1px solid var(--border);background:var(--card);border-radius:2px;position:relative;transition:all .25s;overflow:hidden}
+.arch-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--c),transparent);opacity:0;transition:opacity .25s}
+.arch-card:hover{border-color:rgba(0,229,255,.3);transform:translateY(-4px);box-shadow:var(--glow)}
+.arch-card:hover::after{opacity:1}
+.ac-n{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--dim);letter-spacing:.15em;margin-bottom:14px}
+.ac-t{font-weight:700;font-size:1rem;margin-bottom:8px;text-transform:uppercase;letter-spacing:.02em}
+.ac-d{font-size:.85rem;color:var(--dim);line-height:1.7;font-weight:400}
+
+/* TECH */
+#tech{padding:80px 60px;background:var(--panel);border-top:1px solid var(--border)}
+.tech-grid{display:flex;flex-wrap:wrap;gap:10px;margin-top:32px}
+.tp{
+  padding:9px 18px;background:transparent;border:1px solid var(--border);
+  font-family:'Share Tech Mono',monospace;font-size:.75rem;color:var(--dim);
+  transition:all .2s;letter-spacing:.06em;display:flex;align-items:center;gap:7px;
+}
+.tp:hover{border-color:var(--c);color:var(--c);box-shadow:var(--glow)}
+
+footer{padding:24px 60px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--panel)}
+.fc{font-family:'Share Tech Mono',monospace;font-size:.68rem;color:var(--dim)}
+.fb a{font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--dim);text-decoration:none;transition:color .2s}
+.fb a:hover{color:var(--c)}
+
+@media(max-width:900px){
+  nav{padding:12px 20px}.hero{padding:90px 20px 50px;flex-direction:column;gap:40px}
+  .hud-frame{width:100%;max-width:380px;margin:0 auto}
+  .mrow{grid-template-columns:1fr 1fr}
+  #demo{padding:50px 20px}.demo-grid{grid-template-columns:1fr}
+  #arch{padding:50px 20px}.arch-grid{grid-template-columns:1fr}
+  #tech{padding:50px 20px}footer{padding:20px;flex-direction:column;gap:12px}
+}
+</style>
+</head>
+<body>
+<div class="c-outer" id="co"><div class="c-ring" id="cr"></div><div class="c-dot" id="cd"></div></div>
+
+<nav>
+  <div class="n-logo">FACE.AI <div class="n-hud">SYS_ACTIVE</div></div>
+  <a href="index.html" class="n-back">← PORTFOLIO</a>
+</nav>
+
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-left">
+    <div class="h-sys">SYSTEM // <span>DEEPFACE RECOGNITION ENGINE v2.4</span></div>
+    <h1>Face<br><span class="g">Attendance</span><br>System</h1>
+    <p class="h-desc"><b>Real-time biometric attendance tracking</b> using DeepFace recognition. Auto-identifies students, logs attendance, and syncs to <b>Google Sheets</b> with anti-spoofing protection.</p>
+    <div class="h-btns">
+      <a href="#demo" class="hb1">▶ LAUNCH DEMO</a>
+      <a href="https://github.com/belal-zafar/face-attendance" target="_blank" class="hb2">{ } SOURCE</a>
+    </div>
+  </div>
+  <div class="hud-frame">
+    <div class="hud-outer">
+      <div class="hud-inner">
+        <div class="corner c-tl"></div><div class="corner c-tr"></div>
+        <div class="corner c-bl"></div><div class="corner c-br"></div>
+        <div class="scan-beam"></div>
+        <div class="face-tgt">
+          <div class="face-emoji">👤</div>
+          <div class="face-dots">
+            <div class="fd fd1"></div><div class="fd fd2"></div><div class="fd fd3"></div>
+            <div class="fd fd4"></div><div class="fd fd5"></div>
+          </div>
+          <div class="scan-corners">
+            <div class="sc tl"></div><div class="sc tr"></div><div class="sc bl"></div><div class="sc br"></div>
+          </div>
+        </div>
+        <div class="hud-data">CONF: 99.2%<br>DEPTH: OK<br>LIVENESS: ✓<br>MATCH: FOUND<br>ANTI-SPOOF: ✓</div>
+        <div class="hud-status">● SCANNING</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="mrow">
+  <div class="mitem"><div class="mi-n">99.2%</div><div class="mi-l">Accuracy</div></div>
+  <div class="mitem"><div class="mi-n">&lt;1s</div><div class="mi-l">Recognition</div></div>
+  <div class="mitem"><div class="mi-n">256</div><div class="mi-l">Face Vectors</div></div>
+  <div class="mitem"><div class="mi-n">Anti</div><div class="mi-l">Spoof Guard</div></div>
+</div>
+
+<section id="demo">
+  <div class="sec-tag">Interactive Demo</div>
+  <div class="sec-t">Recognition in Action</div>
+  <div class="demo-grid">
+    <div class="cam-panel">
+      <div class="cp-bar"><span>CAM_01 // LIVE FEED</span><div class="cp-live"><div class="cp-live-dot"></div>LIVE</div></div>
+      <div class="cam-feed">
+        <div class="cam-grid-lines"></div>
+        <div class="cam-face">👤</div>
+        <div class="scan-ring">
+          <div class="scan-corners">
+            <div class="sc tl"></div><div class="sc tr"></div><div class="sc bl"></div><div class="sc br"></div>
+          </div>
+        </div>
+        <div class="scan-h"></div>
+        <div class="cam-label" id="cl">// SCANNING FOR FACE...</div>
+      </div>
+      <button class="scan-btn" onclick="recognize()">▶ SIMULATE RECOGNITION</button>
+    </div>
+    <div class="log-panel">
+      <div class="lp-bar">ATTENDANCE LOG // TODAY'S SESSION</div>
+      <div class="log-body" id="lb"></div>
+      <div class="stats-row">
+        <div class="sr"><div class="sr-n" id="tot">0</div><div class="sr-l">Total</div></div>
+        <div class="sr"><div class="sr-n" id="pres" style="color:var(--ok)">0</div><div class="sr-l">Present</div></div>
+        <div class="sr"><div class="sr-n" id="rate" style="color:var(--c)">—</div><div class="sr-l">Rate</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="arch">
+  <div class="sec-tag">Architecture</div>
+  <div class="sec-t">System Design</div>
+  <div class="arch-grid">
+    <div class="arch-card"><div class="ac-n">MODULE_01</div><div class="ac-t">Face Detection</div><div class="ac-d">OpenCV Haar Cascade + DNN face detection. Multi-scale detection at 15fps. Bounding box extraction for recognition pipeline.</div></div>
+    <div class="arch-card"><div class="ac-n">MODULE_02</div><div class="ac-t">DeepFace Recognition</div><div class="ac-d">ArcFace model for 512-dim face embeddings. Cosine similarity matching against enrolled face database. Threshold at 0.4.</div></div>
+    <div class="arch-card"><div class="ac-n">MODULE_03</div><div class="ac-t">Anti-Spoofing</div><div class="ac-d">Passive liveness detection using depth maps and texture analysis. Rejects photo, video, and 3D mask spoofing attempts.</div></div>
+    <div class="arch-card"><div class="ac-n">MODULE_04</div><div class="ac-t">Attendance Engine</div><div class="ac-d">Real-time logging with timestamp and confidence score. Duplicate detection prevents double-marking. Session management.</div></div>
+    <div class="arch-card"><div class="ac-n">MODULE_05</div><div class="ac-t">Google Sheets Sync</div><div class="ac-d">OAuth2 Sheets API integration. Auto-pushes attendance data. Auto-generates daily reports and absence notifications.</div></div>
+    <div class="arch-card"><div class="ac-n">MODULE_06</div><div class="ac-t">Flask Dashboard</div><div class="ac-d">Real-time attendance monitor. Admin controls for enrollment. Statistics dashboard with attendance trends and export.</div></div>
+  </div>
+</section>
+
+<section id="tech">
+  <div class="sec-tag">Stack</div>
+  <div class="sec-t">Built With</div>
+  <div class="tech-grid">
+    <div class="tp">🐍 Python 3.10</div><div class="tp">👁️ OpenCV</div>
+    <div class="tp">🧠 DeepFace</div><div class="tp">🔢 NumPy</div>
+    <div class="tp">📊 Google Sheets API</div><div class="tp">🛡️ Anti-Spoofing</div>
+    <div class="tp">🌐 Flask</div><div class="tp">🐙 Git</div>
+  </div>
+</section>
+
+<footer>
+  <div class="fc">Face Attendance System // Belal Zafar // 2023</div>
+  <div class="fb"><a href="index.html">← PORTFOLIO</a></div>
+</footer>
+
+<script>
+  // cursor
+  const co=document.getElementById('co'),cr=document.getElementById('cr');
+  document.addEventListener('mousemove',e=>{co.style.left=e.clientX+'px';co.style.top=e.clientY+'px'});
+  document.querySelectorAll('a,button,.arch-card,.tp').forEach(el=>{el.addEventListener('mouseenter',()=>cr.classList.add('big'));el.addEventListener('mouseleave',()=>cr.classList.remove('big'))});
+
+  const students=[
+    {n:'Rahul Sharma',e:'RS',ok:true},{n:'Priya Singh',e:'PS',ok:true},
+    {n:'Amit Kumar',e:'AK',ok:true},{n:'Neha Gupta',e:'NG',ok:false},
+    {n:'Rohan Verma',e:'RV',ok:true},{n:'Pooja Patel',e:'PP',ok:true},
+    {n:'Arjun Rao',e:'AR',ok:false},{n:'Sneha Joshi',e:'SJ',ok:true},
+  ];
+  const labels=['Rahul Sharma ✓','Priya Singh ✓','UNKNOWN — REJECTED','Amit Kumar ✓','Rohan Verma ✓'];
+  let si=0,entries=[];
+  function gt(){return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
+  function addEntry(s){
+    const lb=document.getElementById('lb');
+    const d=document.createElement('div');d.className=`log-entry ${s.ok?'le-ok':'le-err'}`;
+    d.innerHTML=`<div class="le-av">${s.e}</div><div class="le-info"><div class="le-name">${s.n}</div><div class="le-meta">CONF: 99.${Math.floor(Math.random()*9+1)}% · ${gt()}</div></div><div class="le-tag">${s.ok?'PRESENT':'ABSENT'}</div>`;
+    lb.insertBefore(d,lb.firstChild);entries.push(s);
+    const tot=entries.length,pres=entries.filter(e=>e.ok).length;
+    document.getElementById('tot').textContent=tot;document.getElementById('pres').textContent=pres;document.getElementById('rate').textContent=tot?Math.round(pres/tot*100)+'%':'—';
+  }
+  function recognize(){
+    const l=labels[si%labels.length];si++;
+    const rejected=l.includes('UNKNOWN');
+    const cl=document.getElementById('cl');
+    cl.textContent=rejected?'// ⛔ UNKNOWN — ACCESS DENIED':'// ✓ IDENTITY CONFIRMED';
+    cl.style.color=rejected?'var(--err)':'var(--ok)';
+    if(!rejected&&si<=students.length){addEntry(students[Math.min(si-1,students.length-1)]);}
+    setTimeout(()=>{cl.textContent='// SCANNING FOR FACE...';cl.style.color='var(--c)'},2000);
+  }
+  // preload
+  setTimeout(()=>addEntry(students[0]),400);
+  setTimeout(()=>addEntry(students[1]),800);
+  setTimeout(()=>addEntry(students[3]),1200);
+
+  const obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.style.opacity='1';e.target.style.transform='translateY(0)'}}),{threshold:.1});
+  document.querySelectorAll('.arch-card,.tp').forEach((el,i)=>{el.style.opacity='0';el.style.transform='translateY(20px)';el.style.transition=`all .5s ease ${i*.06}s`;obs.observe(el)});
+</script>
+</body>
+</html>

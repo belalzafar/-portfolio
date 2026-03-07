@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stock Sentiment Analyzer — Belal Zafar</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ═══ THEME: Bloomberg Terminal — Amber on Charcoal ═══ */
+:root{
+  --bg:#0A0B0D;--panel:#0F1114;--card:#141519;--border:rgba(255,176,0,.1);
+  --g:#FFB000;--g2:#FFD166;--g3:#FF8C00;--green:#00C853;--red:#FF3D3D;
+  --text:#E8E0CC;--dim:#5A5240;
+  --glow-g:0 0 20px rgba(255,176,0,.15);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+
+/* cursor: crosshair */
+body{cursor:none}
+.cross{position:fixed;pointer-events:none;z-index:9999;top:0;left:0}
+.cross::before,.cross::after{content:'';position:absolute;background:var(--g);opacity:.7}
+.cross::before{width:1px;height:20px;left:-.5px;top:-10px}
+.cross::after{width:20px;height:1px;left:-10px;top:-.5px}
+.cross-dot{position:absolute;width:4px;height:4px;background:var(--g);border-radius:50%;left:-2px;top:-2px;transition:transform .1s ease}
+
+/* ticker tape */
+.ticker{
+  background:var(--panel);border-bottom:1px solid var(--border);
+  padding:8px 0;overflow:hidden;position:relative;
+}
+.ticker::before,.ticker::after{content:'';position:absolute;top:0;bottom:0;width:80px;z-index:2}
+.ticker::before{left:0;background:linear-gradient(90deg,var(--panel),transparent)}
+.ticker::after{right:0;background:linear-gradient(-90deg,var(--panel),transparent)}
+.ticker-inner{display:flex;gap:0;animation:tickScroll 20s linear infinite;width:max-content}
+@keyframes tickScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.tick-item{
+  padding:0 28px;font-family:'IBM Plex Mono',monospace;font-size:.72rem;
+  display:flex;align-items:center;gap:10px;border-right:1px solid var(--border);
+  white-space:nowrap;
+}
+.tick-sym{color:var(--g);font-weight:600}
+.tick-p{color:var(--text)}
+.tick-ch.up{color:var(--green)}.tick-ch.dn{color:var(--red)}
+
+nav{
+  position:sticky;top:0;z-index:500;
+  padding:14px 60px;display:flex;justify-content:space-between;align-items:center;
+  background:var(--panel);border-bottom:1px solid var(--border);
+}
+.n-logo{font-family:'IBM Plex Mono',monospace;font-size:.88rem;color:var(--g);letter-spacing:.08em;font-weight:600}
+.n-logo .n-sub{font-size:.62rem;color:var(--dim);margin-left:8px;font-weight:400}
+.n-back{
+  padding:7px 16px;border:1px solid var(--border);border-radius:2px;
+  font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--dim);
+  text-decoration:none;transition:all .2s;background:transparent;
+}
+.n-back:hover{color:var(--g);border-color:var(--g)}
+
+/* HERO */
+.hero{
+  padding:60px;display:grid;grid-template-columns:1fr 1fr;gap:60px;
+  align-items:center;border-bottom:1px solid var(--border);
+}
+.h-tag{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--dim);
+  letter-spacing:.12em;text-transform:uppercase;margin-bottom:24px;
+}
+.live-pill{
+  padding:3px 10px;background:rgba(0,200,83,.1);border:1px solid rgba(0,200,83,.3);
+  border-radius:2px;font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:var(--green);
+  display:flex;align-items:center;gap:5px;
+}
+.live-dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:bk 1.5s step-end infinite}
+@keyframes bk{0%,100%{opacity:1}50%{opacity:0}}
+h1{font-size:clamp(2.8rem,5vw,4.5rem);font-weight:700;line-height:.95;letter-spacing:-.03em;margin-bottom:20px}
+h1 .g{color:var(--g)}
+.h-desc{font-size:.97rem;color:var(--dim);line-height:1.8;margin-bottom:36px;max-width:440px}
+.h-desc b{color:var(--text)}
+.h-btns{display:flex;gap:12px;flex-wrap:wrap}
+.hb1{
+  padding:12px 26px;background:var(--g);color:var(--bg);
+  font-family:'IBM Plex Mono',monospace;font-size:.76rem;font-weight:600;
+  border:none;border-radius:2px;text-decoration:none;cursor:pointer;
+  letter-spacing:.06em;transition:all .2s;display:inline-flex;align-items:center;gap:8px;
+}
+.hb1:hover{background:var(--g2);transform:translateY(-2px)}
+.hb2{
+  padding:12px 26px;background:transparent;color:var(--text);
+  border:1px solid var(--border);font-family:'IBM Plex Mono',monospace;
+  font-size:.76rem;letter-spacing:.06em;text-decoration:none;transition:all .2s;
+}
+.hb2:hover{border-color:var(--g);color:var(--g)}
+/* hero right — quote board */
+.quote-board{background:var(--card);border:1px solid var(--border);padding:24px;border-radius:4px}
+.qb-title{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--dim);letter-spacing:.12em;text-transform:uppercase;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.qb-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.qb-item:last-child{border-bottom:none}
+.qb-sym{font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--g);font-weight:600}
+.qb-price{font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--text)}
+.qb-chg{font-family:'IBM Plex Mono',monospace;font-size:.72rem;padding:3px 8px;border-radius:2px}
+.up{color:var(--green);background:rgba(0,200,83,.08)}
+.dn{color:var(--red);background:rgba(255,61,61,.08)}
+.qb-sent{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--dim)}
+.bar-mini{height:3px;background:rgba(255,255,255,.05);border-radius:1px;margin-top:4px}
+.bar-mini-fill{height:100%;border-radius:1px;transition:width 1.5s ease}
+
+/* DASHBOARD */
+#demo{padding:60px;background:var(--panel);border-top:1px solid var(--border)}
+.dash{display:grid;grid-template-columns:1fr 340px;gap:24px}
+.dash-main{}
+.stock-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:24px}
+.stab{
+  padding:10px 20px;font-family:'IBM Plex Mono',monospace;font-size:.76rem;
+  color:var(--dim);border:none;background:transparent;cursor:pointer;
+  border-bottom:2px solid transparent;transition:all .2s;letter-spacing:.05em;
+}
+.stab.active,.stab:hover{color:var(--g);border-bottom-color:var(--g)}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:22px;margin-bottom:18px}
+.cc-title{font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;display:flex;justify-content:space-between}
+.cc-price{font-size:1.8rem;font-weight:700;color:var(--text);margin-bottom:4px;font-family:'IBM Plex Mono',monospace}
+.cc-chg{font-family:'IBM Plex Mono',monospace;font-size:.78rem;margin-bottom:16px}
+canvas{display:block}
+.signals{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}
+.sig{padding:16px;border-radius:3px;text-align:center;border:1px solid transparent}
+.sig-b{background:rgba(0,200,83,.06);border-color:rgba(0,200,83,.2)}
+.sig-h{background:rgba(255,176,0,.06);border-color:rgba(255,176,0,.2)}
+.sig-s{background:rgba(255,61,61,.06);border-color:rgba(255,61,61,.2)}
+.sig-l{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+.sig-b .sig-l{color:var(--green)}.sig-h .sig-l{color:var(--g)}.sig-s .sig-l{color:var(--red)}
+.sig-pct{font-family:'IBM Plex Mono',monospace;font-size:1.6rem;font-weight:600}
+.sig-b .sig-pct{color:var(--green)}.sig-h .sig-pct{color:var(--g)}.sig-s .sig-pct{color:var(--red)}
+
+/* sidebar */
+.dash-side{}
+.gauge-card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:20px;margin-bottom:18px;text-align:center}
+.gc-label{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--dim);letter-spacing:.12em;text-transform:uppercase;margin-bottom:16px}
+.gauge-score{font-family:'IBM Plex Mono',monospace;font-size:3rem;font-weight:600;line-height:1}
+.gauge-word{font-family:'IBM Plex Mono',monospace;font-size:.75rem;margin-top:6px;letter-spacing:.1em}
+.gauge-bar-wrap{height:6px;background:rgba(255,255,255,.05);border-radius:3px;margin:14px 0}
+.gauge-bar-fill{height:100%;border-radius:3px;transition:width 1.5s ease}
+.news-card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:16px}
+.nc-title{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--dim);letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px}
+.news-item{padding:12px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;transition:all .2s}
+.news-item:last-child{border-bottom:none}
+.news-item:hover{opacity:.8}
+.ni-t{font-size:.82rem;line-height:1.4;margin-bottom:6px}
+.ni-meta{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:var(--dim)}
+.ni-sent{padding:2px 7px;border-radius:1px;font-size:.58rem}
+.ns-p{background:rgba(0,200,83,.1);color:var(--green)}.ns-n{background:rgba(255,61,61,.1);color:var(--red)}.ns-u{background:rgba(255,176,0,.1);color:var(--g)}
+
+/* TECH */
+#tech{padding:60px;background:var(--bg);border-top:1px solid var(--border)}
+.tech-table{width:100%;margin-top:28px;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:.78rem}
+.tech-table th{text-align:left;padding:10px 16px;border-bottom:1px solid var(--border);color:var(--dim);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;font-weight:400}
+.tech-table td{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.03);color:var(--text)}
+.tech-table tr:hover td{background:rgba(255,176,0,.03)}
+.tech-badge{padding:3px 10px;border-radius:2px;font-size:.65rem;border:1px solid rgba(255,176,0,.2);background:rgba(255,176,0,.05);color:var(--g)}
+
+.sec-lbl{font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--g);letter-spacing:.16em;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.sec-lbl::before{content:'';width:24px;height:1px;background:var(--g)}
+.sec-t{font-size:clamp(1.8rem,3vw,2.4rem);font-weight:700;letter-spacing:-.03em;margin-bottom:0}
+
+footer{padding:24px 60px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--panel)}
+.fc{font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--dim)}
+.fb a{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--dim);text-decoration:none;transition:color .2s}
+.fb a:hover{color:var(--g)}
+
+@media(max-width:900px){
+  nav{padding:12px 20px}.hero{padding:40px 20px;grid-template-columns:1fr}
+  #demo{padding:40px 20px}.dash{grid-template-columns:1fr}
+  #tech{padding:40px 20px}footer{padding:20px;flex-direction:column;gap:12px}
+  .signals{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ticker tape -->
+<div class="ticker">
+  <div class="ticker-inner" id="ti"></div>
+</div>
+
+<nav>
+  <div class="n-logo">SENTIMENT<span class="n-sub">// MARKET ANALYZER</span></div>
+  <a href="index.html" class="n-back">← PORTFOLIO</a>
+</nav>
+
+<!-- crosshair cursor -->
+<div class="cross" id="cross"><div class="cross-dot"></div></div>
+
+<section class="hero">
+  <div>
+    <div class="h-tag">Data Science · LSTM · NLP <div class="live-pill"><div class="live-dot"></div>LIVE</div></div>
+    <h1>Stock Market<br><span class="g">Sentiment</span><br>Analyzer</h1>
+    <p class="h-desc">Combines <b>real-time social media data</b> with LSTM price prediction to gauge market sentiment. Interactive dashboard with <b>buy/sell signal visualization</b>.</p>
+    <div class="h-btns">
+      <a href="#demo" class="hb1">▶ Open Dashboard</a>
+      <a href="https://github.com/belal-zafar/stock-sentiment" target="_blank" class="hb2">{ } SOURCE</a>
+    </div>
+  </div>
+  <div class="quote-board">
+    <div class="qb-title">LIVE SENTIMENT BOARD</div>
+    <div class="qb-item">
+      <div><div class="qb-sym">AAPL</div><div class="qb-sent">Bullish · 78% positive</div><div class="bar-mini"><div class="bar-mini-fill" style="width:78%;background:var(--green)"></div></div></div>
+      <div><div class="qb-price">$189.42</div><div class="qb-chg up">+2.4%</div></div>
+    </div>
+    <div class="qb-item">
+      <div><div class="qb-sym">TSLA</div><div class="qb-sent">Bearish · 38% positive</div><div class="bar-mini"><div class="bar-mini-fill" style="width:38%;background:var(--red)"></div></div></div>
+      <div><div class="qb-price">$218.89</div><div class="qb-chg dn">-1.2%</div></div>
+    </div>
+    <div class="qb-item">
+      <div><div class="qb-sym">GOOGL</div><div class="qb-sent">Neutral · 58% positive</div><div class="bar-mini"><div class="bar-mini-fill" style="width:58%;background:var(--g)"></div></div></div>
+      <div><div class="qb-price">$174.12</div><div class="qb-chg up">+0.8%</div></div>
+    </div>
+    <div class="qb-item">
+      <div><div class="qb-sym">MSFT</div><div class="qb-sent">Bullish · 82% positive</div><div class="bar-mini"><div class="bar-mini-fill" style="width:82%;background:var(--green)"></div></div></div>
+      <div><div class="qb-price">$424.56</div><div class="qb-chg up">+1.5%</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="demo">
+  <div class="sec-lbl">Live Dashboard</div>
+  <div class="sec-t" style="margin-bottom:28px">Real-Time Sentiment Dashboard</div>
+  <div class="dash">
+    <div class="dash-main">
+      <div class="stock-tabs">
+        <button class="stab active" onclick="switchS(this,'AAPL')">AAPL</button>
+        <button class="stab" onclick="switchS(this,'TSLA')">TSLA</button>
+        <button class="stab" onclick="switchS(this,'GOOGL')">GOOGL</button>
+        <button class="stab" onclick="switchS(this,'MSFT')">MSFT</button>
+      </div>
+      <div class="chart-card">
+        <div class="cc-title"><span id="cc-sym">AAPL — Price Prediction vs Actual</span><span style="color:var(--g);font-size:.62rem">MODEL: LSTM · 30D</span></div>
+        <div class="cc-price" id="cc-price">$189.42</div>
+        <div class="cc-chg up" id="cc-chg">▲ +2.4% today</div>
+        <canvas id="chart" width="600" height="180"></canvas>
+      </div>
+      <div class="signals">
+        <div class="sig sig-b"><div class="sig-l">BUY</div><div class="sig-pct" id="sp-b">68%</div></div>
+        <div class="sig sig-h"><div class="sig-l">HOLD</div><div class="sig-pct" id="sp-h">22%</div></div>
+        <div class="sig sig-s"><div class="sig-l">SELL</div><div class="sig-pct" id="sp-s">10%</div></div>
+      </div>
+    </div>
+    <div class="dash-side">
+      <div class="gauge-card">
+        <div class="gc-label">Sentiment Score</div>
+        <div class="gauge-score" id="gs" style="color:var(--green)">72</div>
+        <div class="gauge-word" id="gw" style="color:var(--green)">BULLISH</div>
+        <div class="gauge-bar-wrap"><div class="gauge-bar-fill" id="gbf" style="width:72%;background:var(--green)"></div></div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--dim);display:flex;justify-content:space-between"><span>BEARISH</span><span>BULLISH</span></div>
+      </div>
+      <div class="news-card">
+        <div class="nc-title">News Feed</div>
+        <div id="newsFeed"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tech">
+  <div class="sec-lbl">Stack</div>
+  <div class="sec-t" style="margin-bottom:0">Built With</div>
+  <table class="tech-table">
+    <tr><th>Component</th><th>Technology</th><th>Purpose</th></tr>
+    <tr><td>ML Model</td><td><span class="tech-badge">LSTM · Keras</span></td><td>Price prediction, time series</td></tr>
+    <tr><td>Sentiment</td><td><span class="tech-badge">VADER · NLTK</span></td><td>Twitter/Reddit NLP analysis</td></tr>
+    <tr><td>Data Collection</td><td><span class="tech-badge">Tweepy · PRAW</span></td><td>Social media data scraping</td></tr>
+    <tr><td>Financial Data</td><td><span class="tech-badge">yFinance</span></td><td>Real-time price feeds</td></tr>
+    <tr><td>Visualization</td><td><span class="tech-badge">Plotly Dash</span></td><td>Interactive charts</td></tr>
+    <tr><td>Data Processing</td><td><span class="tech-badge">Pandas · NumPy</span></td><td>Pipeline & feature engineering</td></tr>
+  </table>
+</section>
+
+<footer>
+  <div class="fc">Stock Sentiment Analyzer · Belal Zafar · 2024</div>
+  <div class="fb"><a href="index.html">← PORTFOLIO</a></div>
+</footer>
+
+<script>
+  // cursor
+  const cross=document.getElementById('cross');
+  document.addEventListener('mousemove',e=>{cross.style.left=e.clientX+'px';cross.style.top=e.clientY+'px'});
+
+  // ticker
+  const stocks=[{s:'AAPL',p:'189.42',c:'+2.4%',up:1},{s:'TSLA',p:'218.89',c:'-1.2%',up:0},{s:'GOOGL',p:'174.12',c:'+0.8%',up:1},{s:'MSFT',p:'424.56',c:'+1.5%',up:1},{s:'AMZN',p:'186.30',c:'-0.3%',up:0},{s:'NVDA',p:'875.40',c:'+3.1%',up:1},{s:'META',p:'519.83',c:'+1.8%',up:1},{s:'NFLX',p:'628.17',c:'-0.7%',up:0}];
+  const ti=document.getElementById('ti');
+  [...stocks,...stocks].forEach(s=>{ti.innerHTML+=`<div class="tick-item"><span class="tick-sym">${s.s}</span><span class="tick-p">$${s.p}</span><span class="tick-ch ${s.up?'up':'dn'}">${s.c}</span></div>`});
+
+  const sd={
+    AAPL:{p:'$189.42',c:'▲ +2.4%',buy:68,hold:22,sell:10,score:72,word:'BULLISH',col:'var(--green)',
+      news:[{t:'Apple Q4 earnings beat expectations, iPhone sales surge',s:'p',src:'Reuters'},{t:'Apple Vision Pro adoption grows in enterprise sector',s:'p',src:'CNBC'},{t:'Tim Cook outlines AI strategy for 2025',s:'p',src:'Bloomberg'},{t:'Supply chain concerns ease as TSMC ramps output',s:'u',src:'FT'}]},
+    TSLA:{p:'$218.89',c:'▼ -1.2%',buy:34,hold:28,sell:38,score:31,word:'BEARISH',col:'var(--red)',
+      news:[{t:'Tesla misses Q3 delivery targets by 8%',s:'n',src:'Reuters'},{t:'Elon Musk sells $500M in Tesla shares',s:'n',src:'WSJ'},{t:'Model Y retains top EV sales globally',s:'p',src:'CNBC'},{t:'DOJ investigation into Autopilot continues',s:'n',src:'Bloomberg'}]},
+    GOOGL:{p:'$174.12',c:'▲ +0.8%',buy:55,hold:30,sell:15,score:60,word:'NEUTRAL',col:'var(--g)',
+      news:[{t:'Google Cloud revenue up 28% YoY in Q3',s:'p',src:'Alphabet IR'},{t:'Gemini model surpasses GPT-4 on key benchmarks',s:'p',src:'CNBC'},{t:'DOJ antitrust verdict expected Q1 2025',s:'n',src:'Reuters'},{t:'YouTube ad revenue rebounds strongly',s:'p',src:'Bloomberg'}]},
+    MSFT:{p:'$424.56',c:'▲ +1.5%',buy:71,hold:20,sell:9,score:78,word:'BULLISH',col:'var(--green)',
+      news:[{t:'Azure AI revenue triples year-over-year',s:'p',src:'CNBC'},{t:'Copilot drives record Office 365 growth',s:'p',src:'Bloomberg'},{t:'OpenAI partnership extends to 2030',s:'p',src:'WSJ'},{t:'Xbox Game Pass surpasses 34M subscribers',s:'p',src:'Reuters'}]},
+  };
+  let cur='AAPL';
+
+  function drawChart(sym){
+    const c=document.getElementById('chart'),ctx=c.getContext('2d');
+    c.width=c.offsetWidth||600;c.height=180;ctx.clearRect(0,0,c.width,180);
+    const act=[],pred=[];let p=150+Math.random()*60;
+    for(let i=0;i<30;i++){p+=((Math.random()-.47)*6);act.push(+p.toFixed(2));pred.push(+(p+(Math.random()-.5)*5).toFixed(2));}
+    const all=[...act,...pred],mn=Math.min(...all)-5,mx=Math.max(...all)+5,w=c.width,h=180,pd=24;
+    const sx=i=>(i/29)*(w-pd*2)+pd,sy=v=>h-pd-((v-mn)/(mx-mn))*(h-pd*2);
+    // grid
+    for(let i=0;i<5;i++){const y=pd+i*(h-pd*2)/4;ctx.strokeStyle='rgba(255,255,255,.04)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pd,y);ctx.lineTo(w-pd,y);ctx.stroke();}
+    // actual
+    ctx.beginPath();ctx.strokeStyle='rgba(255,255,255,.3)';ctx.lineWidth=1.5;
+    act.forEach((v,i)=>i?ctx.lineTo(sx(i),sy(v)):ctx.moveTo(sx(i),sy(v)));ctx.stroke();
+    // pred
+    const col=sd[sym].col;
+    ctx.beginPath();ctx.strokeStyle=col;ctx.lineWidth=2;ctx.setLineDash([6,4]);
+    pred.forEach((v,i)=>i?ctx.lineTo(sx(i),sy(v)):ctx.moveTo(sx(i),sy(v)));ctx.stroke();ctx.setLineDash([]);
+    // legend
+    ctx.font='10px IBM Plex Mono';ctx.fillStyle='rgba(255,255,255,.3)';ctx.fillText('─ Actual',pd,h-5);
+    ctx.fillStyle=col;ctx.fillText('- - Predicted',pd+76,h-5);
+  }
+
+  function updateDash(){
+    const d=sd[cur];
+    document.getElementById('cc-sym').textContent=`${cur} — Price Prediction vs Actual`;
+    document.getElementById('cc-price').textContent=d.p;
+    const cc=document.getElementById('cc-chg');cc.textContent=d.c;cc.className='cc-chg '+(d.c.includes('▲')?'up':'dn');
+    document.getElementById('sp-b').textContent=d.buy+'%';
+    document.getElementById('sp-h').textContent=d.hold+'%';
+    document.getElementById('sp-s').textContent=d.sell+'%';
+    document.getElementById('gs').textContent=d.score;document.getElementById('gs').style.color=d.col;
+    document.getElementById('gw').textContent=d.word;document.getElementById('gw').style.color=d.col;
+    document.getElementById('gbf').style.width=d.score+'%';document.getElementById('gbf').style.background=d.col;
+    const feed=document.getElementById('newsFeed');
+    feed.innerHTML=d.news.map(n=>`<div class="news-item"><div class="ni-t">${n.t}</div><div class="ni-meta"><span>${n.src}</span><span class="ni-sent ns-${n.s}">${n.s==='p'?'POS':n.s==='n'?'NEG':'NEU'}</span></div></div>`).join('');
+    drawChart(cur);
+  }
+  function switchS(btn,s){document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');cur=s;updateDash();}
+  window.addEventListener('load',updateDash);
+  window.addEventListener('resize',()=>drawChart(cur));
+</script>
+</body>
+</html>
